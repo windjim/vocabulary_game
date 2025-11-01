@@ -44,10 +44,12 @@ Excel 檔案應包含以下欄位（使用繁體中文標題）：
 此專案僅供個人學習使用。
 
 ## 實際畫面
-
+- 初始畫面
 ![alt text](img/image-1.png)
 
+- 新增 EXCEL 成功
 ![alt text](img/image-2.jpg)
 
+- 遊玩操作
 ![alt text](img/gif-1.gif)
 
