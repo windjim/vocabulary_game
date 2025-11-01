@@ -45,4 +45,9 @@ Excel 檔案應包含以下欄位（使用繁體中文標題）：
 
 ## 實際畫面
 
-![alt text](image-1.png)
+![alt text](img/image-1.png)
+
+![alt text](img/image-2.jpg)
+
+![alt text](img/gif-1.gif)
+
