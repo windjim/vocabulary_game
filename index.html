@@ -448,10 +448,10 @@
         // 從 localStorage 載入不確定的單字集合
         let uncertainSet = new Set();
         try {
-            const savedUncertain = localStorage.getItem('uncertainWords');
-            if (savedUncertain) {
-                uncertainSet = new Set(JSON.parse(savedUncertain));
-                console.log(`已從 localStorage 載入 ${uncertainSet.size} 個不確定單字`);
+        const savedUncertain = localStorage.getItem('uncertainWords');
+        if (savedUncertain) {
+            uncertainSet = new Set(JSON.parse(savedUncertain));
+            console.log(`已從 localStorage 載入 ${uncertainSet.size} 個不確定單字`);
             }
         } catch (error) {
             console.error('載入不確定單字時發生錯誤:', error);
@@ -754,7 +754,7 @@
             }
 
             // 檢查題庫是否足夠（至少需要4個不同的單字）
-            if (pool.length < 2) {
+            if (pool.length < 3) {
                 alert('題庫單字不足，至少需要4個不同的單字才能開始遊戲');
                 return false;
             }
@@ -770,7 +770,6 @@
             // 重置統計（包含不確定單字集合）
             score = 0;
             total = 0;
-            uncertainSet.clear();  // 只清空當前測試的集合，不清除 localStorage
 
             // 記錄當前選擇的單元
             lastSelectedUnits = selectedUnits;
@@ -778,7 +777,6 @@
             updateStats();
             generateQuestion();
 
-            document.getElementById('next').disabled = false;
             document.getElementById('restart').disabled = false;
 
             return true;
