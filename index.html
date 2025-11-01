@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CNN Vocabulary Game – L1~L13 (Offline)</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body {
+            background: #0b1229;
+            color: #f5f6ff;
+            font-family: 'Noto Sans TC', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            background: #141a3d;
+            padding: 20px;
+            border-radius: 20px;
+            max-width: 1100px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        button {
+            background: #3556f0;
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 2px 2px;
+            font-size: 13px;
+        }
+
+        button.ghost {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+        .units {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .units label {
+            background: rgba(0, 0, 0, .12);
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .units input {
+            margin-right: 3px;
+        }
+
+        #opts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .opt {
+            background: #1e2750;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            border: 1px solid transparent;
+        }
+
+        .opt:hover {
+            background: #273068;
+        }
+
+        .opt.correct {
+            background: #1aa471;
+            border-color: rgba(255, 255, 255, .2);
+        }
+
+        .opt.wrong {
+            background: #a33f52;
+            border-color: rgba(255, 255, 255, .2);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, .08);
+            padding: 2px 9px 3px;
+            border-radius: 999px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        #exampleBox {
+            background: rgba(0, 0, 0, .15);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 10px;
+            padding: 8px 10px;
+            margin-top: 10px;
+            display: none;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .small-muted {
+            font-size: 11px;
+            color: rgba(255, 255, 255, .6);
+        }
+
+        /* Checkbox 容器樣式 */
+        #unitCheckboxContainer {
+            display: none;
+            background: #1e2750;
+            border: 1px solid rgba(255, 255, 255, .2);
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            min-width: 280px;
+            max-width: 400px;
+        }
+
+        #unitCheckboxContainer label {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        #unitCheckboxContainer label:hover {
+            background: rgba(255, 255, 255, .05);
+        }
+
+        #unitCheckboxContainer input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
+        }
+
+        @media(max-width:720px) {
+            #opts {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>📘 CNN Vocabulary Game </h2>
+
+        <!-- 單元選擇區域 -->
+        <div style="margin-bottom:10px;">
+            <label style="margin-right:8px;font-size:14px;">選擇單元：</label>
+
+            <!-- 單選模式：下拉選單 -->
+            <select id="unitSelect"
+                style="background:#1e2750;color:#f5f6ff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:8px 10px;min-width:280px;max-width:400px;font-size:13px;outline:none;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+                <option disabled style="color:#888;">請先上傳 Excel 檔案</option>
+            </select>
+
+            <!-- 多選模式：Checkbox 列表 -->
+            <div id="unitCheckboxContainer">
+                <div style="color:#888;font-size:13px;">請先上傳 Excel 檔案</div>
+            </div>
+        </div>
+
+        <div style="margin:6px 0 10px;">
+            <label style="margin-right:8px;font-size:14px;">出題模式：</label>
+            <button id="singleMode" class="ghost">單選模式</button>
+            <button id="multiMode" class="ghost">多選模式</button>
+            <button id="mixMode" class="ghost">混合出題</button>
+            <button id="uncertainMode" class="ghost">只出不確定
+                <span class="badge" style="background:rgba(255,165,0,.15);">總共不確定數量: <span id="uncertainCount">0</span>
+                </span>
+            </button>
+        </div>
+        <div style="margin:6px 0 10px;" id="multiModeControls" style="display:none;">
+            <button id="all" class="ghost">全選</button>
+            <button id="none" class="ghost">全不選</button>
+        </div>
+        <div style="margin-bottom:8px;">
+            <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none;" />
+            <button id="uploadBtn" class="ghost">📤 上傳 Excel</button>
+            <span id="uploadStatus" style="font-size:12px;margin-left:8px;color:#4ade80;"></span>
+        </div>
+        <div style="margin-bottom:8px;">
+            <button id="start">開始出題</button>
+            <button id="next" disabled>下一題</button>
+            <button id="restart" class="ghost" disabled>重新測試</button>
+            <button id="reset" class="ghost">重置統計</button>
+        </div>
+        <p>
+            <span class="badge">得分 <span id="score">0</span></span>
+            <span class="badge">題數 <span id="count">0</span></span>
+            <span class="badge">正確率 <span id="acc">0%</span></span>
+        </p>
+        <hr />
+        <h3 id="word">—</h3>
+        <p id="pos" class="small-muted"></p>
+        <div id="opts"></div>
+        <button id="notSureBtn" class="ghost" style="margin-top:8px;">不確定 / 顯示例句</button>
+        <div id="exampleBox"></div>
+        <p id="info" class="small-muted" style="margin-top:10px;"></p>
+    </div>
+
+    <script>
+        // --------------------------------------------------
+        // 題庫：L1~L13
+        // L1~L6 這裡我先放示範幾筆，L7~L13 是你剛剛提供的正式資料
+        // 之後你要補 L1~L6 真資料，只要往這個陣列繼續加就好
+        // --------------------------------------------------
+        // 從 localStorage 載入 DATA
+        let DATA = [];
+        try {
+            const savedData = localStorage.getItem('vocabularyData');
+            if (savedData) {
+                DATA = JSON.parse(savedData);
+                console.log(`已從 localStorage 載入 ${DATA.length} 個單字`);
+            }
+        } catch (error) {
+            console.error('載入 localStorage 資料時發生錯誤:', error);
+            DATA = [];
+        }
+
+        // --------------------------------------------------
+        // Excel 上傳與解析功能
+        // --------------------------------------------------
+        const uploadBtn = document.getElementById('uploadBtn');
+        const excelFile = document.getElementById('excelFile');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        uploadBtn.addEventListener('click', () => {
+            excelFile.click();
+        });
+
+        excelFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            uploadStatus.textContent = '解析中...';
+            uploadStatus.style.color = '#fbbf24';
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+
+                    // 驗證並轉換資料格式
+                    let addedCount = 0;
+                    let totalProcessed = 0;
+                    const newUnits = new Set();
+                    const sheetsProcessed = [];
+
+                    // 讀取所有工作表
+                    workbook.SheetNames.forEach((sheetName) => {
+                        const worksheet = workbook.Sheets[sheetName];
+
+                        // 轉換為 JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                        if (jsonData.length === 0) {
+                            console.warn(`頁籤「${sheetName}」中沒有資料，已略過`);
+                            return;
+                        }
+
+                        let sheetAddedCount = 0;
+
+                        jsonData.forEach((row, index) => {
+                            totalProcessed++;
+
+                            // 驗證必填欄位（只需要「單字」和「意思」）
+                            if (!row['單字'] || !row['意思']) {
+                                console.warn(`頁籤「${sheetName}」第 ${index + 2} 列資料不完整，已略過`, row);
+                                return;
+                            }
+
+                            // 使用頁籤名稱作為 unit
+                            const unit = sheetName;
+
+                            // 檢查是否已存在相同單字（使用繁體中文標題）
+                            const word = row['單字'];
+
+                            const isDuplicate = DATA.some(item =>
+                                item.unit === unit && item.word.toLowerCase() === word.toLowerCase()
+                            );
+
+
+                            if (!isDuplicate) {
+                                DATA.push({
+                                    unit: unit,
+                                    word: row['單字'],
+                                    pos: row['詞性'] || '',
+                                    chinese: row['意思'],
+                                    example: row['例句'] || ''
+                                });
+                                addedCount++;
+                                sheetAddedCount++;
+                                newUnits.add(unit);
+                            }
+                        });
+
+                        if (sheetAddedCount > 0) {
+                            sheetsProcessed.push(`${sheetName}(${sheetAddedCount})`);
+                        }
+                    });
+
+                    if (addedCount === 0 && totalProcessed === 0) {
+                        throw new Error('Excel 檔案中沒有資料');
+                    }
+
+                    // 更新單元選擇清單
+                    if (newUnits.size > 0) {
+                        updateUnitList(newUnits);
+                    }
+
+                    // 儲存到 localStorage
+                    try {
+                        localStorage.setItem('vocabularyData', JSON.stringify(DATA));
+                        console.log('已將資料儲存到 localStorage');
+                    } catch (error) {
+                        console.error('儲存到 localStorage 時發生錯誤:', error);
+                        alert('警告：無法儲存資料到 localStorage，可能是因為儲存空間已滿');
+                    }
+
+                    // 顯示詳細的成功訊息
+                    let message = `✓ 成功加入 ${addedCount} 個單字`;
+                    if (sheetsProcessed.length > 0) {
+                        message += ` [${sheetsProcessed.join(', ')}]`;
+                    }
+                    uploadStatus.textContent = message;
+                    uploadStatus.style.color = '#4ade80';
+
+                    // 在 console 顯示更詳細的資訊
+                    console.log(`已處理 ${workbook.SheetNames.length} 個頁籤，成功加入 ${addedCount} 個單字`);
+                    console.log('處理的頁籤:', sheetsProcessed);
+
+                    // 5 秒後清除狀態（因為訊息較長，多給一點時間閱讀）
+                    setTimeout(() => {
+                        uploadStatus.textContent = '';
+                    }, 5000);
+
+                } catch (error) {
+                    uploadStatus.textContent = `✗ 錯誤: ${error.message}`;
+                    uploadStatus.style.color = '#f87171';
+                    console.error('解析 Excel 時發生錯誤:', error);
+                }
+            };
+
+            reader.onerror = () => {
+                uploadStatus.textContent = '✗ 讀取檔案失敗';
+                uploadStatus.style.color = '#f87171';
+            };
+
+            reader.readAsArrayBuffer(file);
+
+            // 清除 input，允許重複上傳同一個檔案
+            e.target.value = '';
+        });
+
+        // 更新單元選擇清單（支援下拉選單和 checkbox）
+        function updateUnitList(newUnits) {
+            const unitSelect = document.getElementById('unitSelect');
+            const checkboxContainer = document.getElementById('unitCheckboxContainer');
+
+            // 獲取現有的 unit 值（從下拉選單）
+            const existingUnits = Array.from(unitSelect.options)
+                .filter(opt => !opt.disabled)
+                .map(opt => opt.value);
+
+            // 清除提示訊息（如果存在）
+            if (unitSelect.options.length > 0 && unitSelect.options[0].disabled) {
+                unitSelect.remove(0);
+            }
+
+            // 收集所有 unit（現有的 + 新的）
+            const allUnits = new Set([...existingUnits, ...newUnits]);
+
+            // 將 Set 轉換為陣列並排序
+            const sortedUnits = Array.from(allUnits).sort((a, b) => {
+                // 嘗試提取數字進行排序（例如 L1, L2, L10）
+                const numA = parseInt(a.replace(/\D/g, '')) || 0;
+                const numB = parseInt(b.replace(/\D/g, '')) || 0;
+                if (numA !== numB) return numA - numB;
+                return a.localeCompare(b);
+            });
+
+            // 更新下拉選單
+            unitSelect.innerHTML = '';
+            sortedUnits.forEach((unit, index) => {
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = unit;
+                option.selected = index === 0; // 單選模式預設選第一個
+                unitSelect.appendChild(option);
+            });
+
+            // 更新 checkbox 容器
+            checkboxContainer.innerHTML = '';
+            sortedUnits.forEach((unit) => {
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = unit;
+                checkbox.checked = true; // 多選模式預設全選
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(unit));
+                checkboxContainer.appendChild(label);
+            });
+        }
+
+        // --------------------------------------------------
+        // 遊戲狀態管理
+        // --------------------------------------------------
+        let score = 0;          // 得分
+        let total = 0;          // 總題數
+        let currentQ = null;    // 當前題目
+        let pool = [];          // 題庫池
+        let remainingPool = []; // 剩餘未出題的題庫
+
+        // 從 localStorage 載入不確定的單字集合
+        let uncertainSet = new Set();
+        try {
+            const savedUncertain = localStorage.getItem('uncertainWords');
+            if (savedUncertain) {
+                uncertainSet = new Set(JSON.parse(savedUncertain));
+                console.log(`已從 localStorage 載入 ${uncertainSet.size} 個不確定單字`);
+            }
+        } catch (error) {
+            console.error('載入不確定單字時發生錯誤:', error);
+            uncertainSet = new Set();
+        }
+
+        let currentMode = 'multi';  // 當前模式：'single', 'multi', 'mix', 'uncertain'
+        let lastSelectedUnits = []; // 記錄上次選擇的單元
+
+        // 更新模式按鈕狀態（統一管理四種模式）
+        function updateModeButtons(mode) {
+            const singleBtn = document.getElementById('singleMode');
+            const multiBtn = document.getElementById('multiMode');
+            const mixBtn = document.getElementById('mixMode');
+            const uncertainBtn = document.getElementById('uncertainMode');
+            const unitSelect = document.getElementById('unitSelect');
+            const checkboxContainer = document.getElementById('unitCheckboxContainer');
+            const multiModeControls = document.getElementById('multiModeControls');
+
+            // 重置所有按鈕
+            [singleBtn, multiBtn, mixBtn, uncertainBtn].forEach(btn => {
+                btn.style.background = 'transparent';
+            });
+
+            // 設置當前模式
+            currentMode = mode;
+
+            switch (mode) {
+                case 'single':
+                    // 單選模式：下拉選單
+                    singleBtn.style.background = '#3556f0';
+                    unitSelect.style.display = 'block';
+                    checkboxContainer.style.display = 'none';
+                    multiModeControls.style.display = 'none';
+
+                    // 同步 checkbox 到下拉選單
+                    const checkboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]:checked');
+                    if (checkboxes.length > 0) {
+                        const firstUnit = checkboxes[0].value;
+                        Array.from(unitSelect.options).forEach(opt => {
+                            opt.selected = opt.value === firstUnit;
+                        });
+                    } else if (unitSelect.options.length > 0 && !unitSelect.options[0].disabled) {
+                        unitSelect.options[0].selected = true;
+                    }
+                    break;
+
+                case 'multi':
+                    // 多選模式：checkbox
+                    multiBtn.style.background = '#3556f0';
+                    unitSelect.style.display = 'none';
+                    checkboxContainer.style.display = 'block';
+                    multiModeControls.style.display = 'block';
+
+                    // 同步下拉選單到 checkbox
+                    const selectedValue = Array.from(unitSelect.options).find(opt => opt.selected)?.value;
+                    const allCheckboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]');
+                    allCheckboxes.forEach(cb => {
+                        if (selectedValue) {
+                            cb.checked = cb.value === selectedValue;
+                        }
+                    });
+                    break;
+
+                case 'mix':
+                    // 混合出題模式：checkbox（可多選，隨機出題）
+                    mixBtn.style.background = '#3556f0';
+                    unitSelect.style.display = 'none';
+                    checkboxContainer.style.display = 'block';
+                    multiModeControls.style.display = 'block';
+                    break;
+
+                case 'uncertain':
+                    // 只出不確定模式：隱藏單元選擇
+                    uncertainBtn.style.background = '#3556f0';
+                    unitSelect.style.display = 'none';
+                    checkboxContainer.style.display = 'none';
+                    multiModeControls.style.display = 'none';
+                    break;
+            }
+        }
+
+        // 單選模式
+        document.getElementById('singleMode')?.addEventListener('click', () => {
+            updateModeButtons('single');
+        });
+
+        // 多選模式
+        document.getElementById('multiMode')?.addEventListener('click', () => {
+            updateModeButtons('multi');
+        });
+
+        // 混合出題模式
+        document.getElementById('mixMode')?.addEventListener('click', () => {
+            updateModeButtons('mix');
+        });
+
+        // 只出不確定模式
+        document.getElementById('uncertainMode')?.addEventListener('click', () => {
+            if (uncertainSet.size === 0) {
+                alert('目前沒有標記為「不確定」的單字');
+                return;
+            }
+            updateModeButtons('uncertain');
+        });
+
+        // 全選功能
+        document.getElementById('all')?.addEventListener('click', () => {
+            const checkboxContainer = document.getElementById('unitCheckboxContainer');
+            const checkboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+
+        // 全不選功能
+        document.getElementById('none')?.addEventListener('click', () => {
+            const checkboxContainer = document.getElementById('unitCheckboxContainer');
+            const checkboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        });
+
+        // 初始化為多選模式
+        updateModeButtons('single');
+
+        // 獲取選中的單元
+        function getSelectedUnits() {
+            const unitSelect = document.getElementById('unitSelect');
+            const checkboxContainer = document.getElementById('unitCheckboxContainer');
+
+            switch (currentMode) {
+                case 'single':
+                    // 單選模式：從下拉選單獲取
+                    const selected = Array.from(unitSelect.options).find(opt => opt.selected);
+                    return selected ? [selected.value] : [];
+
+                case 'multi':
+                case 'mix':
+                    // 多選模式或混合模式：從 checkbox 獲取
+                    const checkboxes = checkboxContainer.querySelectorAll('input[type="checkbox"]:checked');
+                    return Array.from(checkboxes).map(cb => cb.value);
+
+                case 'uncertain':
+                    // 只出不確定模式：返回空陣列（不需要單元選擇）
+                    return [];
+
+                default:
+                    return [];
+            }
+        }
+
+        // 更新統計顯示
+        function updateStats() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('count').textContent = total;
+            const acc = total === 0 ? 0 : Math.round((score / total) * 100);
+            document.getElementById('acc').textContent = acc + '%';
+            document.getElementById('uncertainCount').textContent = uncertainSet.size;
+        }
+
+        // 隨機打亂陣列
+        function shuffle(arr) {
+            const copy = [...arr];
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // 生成題目
+        function generateQuestion() {
+            // 檢查是否還有剩餘題目
+            if (remainingPool.length === 0) {
+                alert(`所有題目已完成！\n總題數：${total}\n答對：${score}\n正確率：${total === 0 ? 0 : Math.round((score / total) * 100)}%`);
+                document.getElementById('next').disabled = true;
+                return;
+            }
+
+            // 從剩餘題庫中隨機選一個單字
+            const randomIndex = Math.floor(Math.random() * remainingPool.length);
+            const correctItem = remainingPool[randomIndex];
+
+            // 從剩餘題庫中移除已選擇的單字
+            remainingPool.splice(randomIndex, 1);
+
+            // 準備選項：正確答案 + 3個錯誤答案（從完整題庫中選擇）
+            const wrongPool = pool.filter(item => item.chinese !== correctItem.chinese);
+            if (wrongPool.length < 3) {
+                alert('題庫選項不足（至少需要4個不同的單字）');
+                return;
+            }
+
+            const wrongItems = shuffle(wrongPool).slice(0, 3);
+            const options = shuffle([correctItem, ...wrongItems]);
+
+            // 設置題目
+            currentQ = {
+                correct: correctItem,
+                options: options
+            };
+
+            // 顯示題目
+            document.getElementById('word').textContent = correctItem.word;
+            document.getElementById('pos').textContent = correctItem.pos || '';
+
+            // 顯示剩餘題數
+            document.getElementById('info').textContent = `剩餘題數：${remainingPool.length}`;
+            document.getElementById('info').style.color = '#888';
+
+            // 清空並生成選項按鈕
+            const optsDiv = document.getElementById('opts');
+            optsDiv.innerHTML = '';
+
+            options.forEach((opt, index) => {
+                const btn = document.createElement('div');
+                btn.className = 'opt';
+                btn.textContent = opt.chinese;
+                btn.addEventListener('click', () => checkAnswer(opt, btn));
+                optsDiv.appendChild(btn);
+            });
+
+            // 隱藏例句
+            document.getElementById('exampleBox').style.display = 'none';
+
+            // 啟用「不確定」按鈕
+            document.getElementById('notSureBtn').disabled = false;
+        }
+
+        // 檢查答案
+        function checkAnswer(selected, btn) {
+            if (!currentQ) return;
+
+            // 禁用所有選項按鈕
+            const allOpts = document.querySelectorAll('.opt');
+            allOpts.forEach(opt => {
+                opt.style.pointerEvents = 'none';
+            });
+
+            total++;
+
+            if (selected.chinese === currentQ.correct.chinese) {
+                // 答對
+                btn.classList.add('correct');
+                score++;
+                document.getElementById('info').textContent = '✓ 正確！';
+                document.getElementById('info').style.color = '#4ade80';
+            } else {
+                // 答錯
+                btn.classList.add('wrong');
+                document.getElementById('info').textContent = '✗ 錯誤，正確答案是：' + currentQ.correct.chinese;
+                document.getElementById('info').style.color = '#f87171';
+
+                // 標示正確答案
+                allOpts.forEach(opt => {
+                    if (opt.textContent === currentQ.correct.chinese) {
+                        opt.classList.add('correct');
+                    }
+                });
+            }
+
+            // 如果有例句，自動顯示
+            if (currentQ.correct.example) {
+                document.getElementById('exampleBox').textContent = currentQ.correct.example;
+                document.getElementById('exampleBox').style.display = 'block';
+            }
+
+            updateStats();
+
+            // 啟用「下一題」按鈕
+            document.getElementById('next').disabled = false;
+            document.getElementById('notSureBtn').disabled = true;
+        }
+
+        // 開始遊戲的共用邏輯
+        function startGame(selectedUnits) {
+            if (DATA.length === 0) {
+                alert('請先上傳 Excel 檔案');
+                return false;
+            }
+
+            // 根據模式篩選題庫
+            if (currentMode === 'uncertain') {
+                // 只出不確定的單字
+                if (uncertainSet.size === 0) {
+                    alert('目前沒有標記為「不確定」的單字');
+                    return false;
+                }
+                pool = DATA.filter(item => uncertainSet.has(item.word));
+            } else {
+                // 其他模式：根據選中的單元篩選
+                if (selectedUnits.length === 0) {
+                    alert('請至少選擇一個單元');
+                    return false;
+                }
+                pool = DATA.filter(item => selectedUnits.includes(item.unit));
+            }
+
+            if (pool.length === 0) {
+                alert('所選單元沒有單字資料');
+                return false;
+            }
+
+            // 檢查題庫是否足夠（至少需要4個不同的單字）
+            if (pool.length < 2) {
+                alert('題庫單字不足，至少需要4個不同的單字才能開始遊戲');
+                return false;
+            }
+
+            // 初始化剩餘題庫（複製一份完整題庫）
+            remainingPool = [...pool];
+
+            // 混合出題模式：打亂剩餘題庫順序
+            if (currentMode === 'mix') {
+                remainingPool = shuffle(remainingPool);
+            }
+
+            // 重置統計（包含不確定單字集合）
+            score = 0;
+            total = 0;
+            uncertainSet.clear();  // 只清空當前測試的集合，不清除 localStorage
+
+            // 記錄當前選擇的單元
+            lastSelectedUnits = selectedUnits;
+
+            updateStats();
+            generateQuestion();
+
+            document.getElementById('next').disabled = false;
+            document.getElementById('restart').disabled = false;
+
+            return true;
+        }
+
+        // 開始出題
+        document.getElementById('start')?.addEventListener('click', () => {
+            const selectedUnits = getSelectedUnits();
+            startGame(selectedUnits);
+        });
+
+        // 下一題
+        document.getElementById('next')?.addEventListener('click', () => {
+            generateQuestion();
+            document.getElementById('next').disabled = true;
+        });
+
+        // 重新測試
+        document.getElementById('restart')?.addEventListener('click', () => {
+            if (lastSelectedUnits.length === 0) {
+                alert('請先開始出題');
+                return;
+            }
+
+            // 使用上次選擇的單元重新開始
+            startGame(lastSelectedUnits);
+        });
+
+        // 不確定 / 顯示例句
+        document.getElementById('notSureBtn')?.addEventListener('click', () => {
+            if (!currentQ) return;
+
+            const savedUncertain = localStorage.getItem('uncertainWords');
+            if (savedUncertain) {
+                uncertainSet = new Set(JSON.parse(savedUncertain));
+            }
+
+            // 加入不確定集合
+            uncertainSet.add(currentQ.correct.word);
+            updateStats();
+
+            // 儲存到 localStorage
+            try {
+                localStorage.setItem('uncertainWords', JSON.stringify([...uncertainSet]));
+            } catch (error) {
+                console.error('儲存不確定單字到 localStorage 時發生錯誤:', error);
+            }
+
+            // 顯示例句
+            if (currentQ.correct.example) {
+                document.getElementById('exampleBox').textContent = currentQ.correct.example;
+                document.getElementById('exampleBox').style.display = 'block';
+            } else {
+                document.getElementById('exampleBox').textContent = '（無例句）';
+                document.getElementById('exampleBox').style.display = 'block';
+            }
+
+            document.getElementById('info').textContent = '已標記為「不確定」';
+            document.getElementById('info').style.color = '#fbbf24';
+        });
+
+        // 重置統計
+        document.getElementById('reset')?.addEventListener('click', () => {
+            if (confirm('確定要重置所有統計資料嗎？')) {
+                score = 0;
+                total = 0;
+                uncertainSet.clear();
+                updateStats();
+
+                // 清除 localStorage 中的不確定單字
+                try {
+                    localStorage.removeItem('uncertainWords');
+                    console.log('已清除 localStorage 中的不確定單字');
+                } catch (error) {
+                    console.error('清除不確定單字時發生錯誤:', error);
+                }
+
+                document.getElementById('word').textContent = '—';
+                document.getElementById('pos').textContent = '';
+                document.getElementById('opts').innerHTML = '';
+                document.getElementById('exampleBox').style.display = 'none';
+                document.getElementById('info').textContent = '';
+                document.getElementById('next').disabled = true;
+                document.getElementById('restart').disabled = true;
+            }
+        });
+
+        // 初始化統計
+        updateStats();
+
+        // 頁面載入時，如果 localStorage 中有資料，自動恢復單元列表
+        if (DATA.length > 0) {
+            const allUnits = new Set();
+            DATA.forEach(item => {
+                if (item.unit) {
+                    allUnits.add(item.unit);
+                }
+            });
+
+            if (allUnits.size > 0) {
+                updateUnitList(allUnits);
+                console.log(`已恢復 ${allUnits.size} 個單元`);
+            }
+        }
+    </script>
+</body>
+
+</html>
